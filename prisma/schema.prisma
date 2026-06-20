@@ -13,7 +13,7 @@ model Patient {
   birthDate   DateTime?
   sex         String?
   profession  String?
-  anamnesis   Json?
+  anamnese    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   appointments Appointment[]
