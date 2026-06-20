@@ -27,6 +27,11 @@ export default function AnamneseScreen({ patientId }: { patientId: string }) {
       <EVASlider value={anamnese.eva} onChange={(v) => setAnamnese({...anamnese, eva: v})} />
       <SignaturePad onSave={(data) => console.log(data)} />
       <button onClick={save} className="w-full bg-blue-600 text-white p-2 rounded">Salvar Prontuário</button>
+      <button onClick={async () => {
+        const res = await fetch(`/api/chat/diagnose/${patientId}`, { method: 'POST' });
+        const diag = await res.json();
+        alert(JSON.stringify(diag));
+      }} className="w-full bg-purple-600 text-white p-2 rounded">Gerar Diagnóstico IA</button>
     </div>
   );
 }

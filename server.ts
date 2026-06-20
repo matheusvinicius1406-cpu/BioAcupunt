@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import patientRoutes from "./backend/src/routes/patients";
 import appointmentRoutes from "./backend/src/routes/appointments";
+import chatRoutes from "./backend/src/routes/chat";
 
 async function startServer() {
   const app = express();
@@ -15,6 +16,7 @@ async function startServer() {
   // API routes
   app.use("/api/patients", patientRoutes);
   app.use("/api/appointments", appointmentRoutes);
+  app.use("/api/chat", chatRoutes);
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
