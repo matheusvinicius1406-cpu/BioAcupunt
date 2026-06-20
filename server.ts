@@ -5,6 +5,8 @@ import cors from "cors";
 import patientRoutes from "./backend/src/routes/patients";
 import appointmentRoutes from "./backend/src/routes/appointments";
 import chatRoutes from "./backend/src/routes/chat";
+import packageRoutes from "./backend/src/routes/packages";
+import financeRoutes from "./backend/src/routes/finance";
 
 async function startServer() {
   const app = express();
@@ -17,6 +19,8 @@ async function startServer() {
   app.use("/api/patients", patientRoutes);
   app.use("/api/appointments", appointmentRoutes);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/packages", packageRoutes);
+  app.use("/api/finance", financeRoutes);
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });

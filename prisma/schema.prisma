@@ -18,6 +18,9 @@ model Patient {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   appointments Appointment[]
+  packages    PackageSession[]
+  finances    Finance[]
+  balance     Float?
 }
 
 model Appointment {
@@ -28,6 +31,50 @@ model Appointment {
   duration      Int
   status        String   @default("scheduled")
   treatmentType String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Package {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  totalSessions Int
+  price        Float
+  discount     Float?
+  validityDays Int?
+  status       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sessions     PackageSession[]
+}
+
+model PackageSession {
+  id            String   @id @default(cuid())
+  packageId     String
+  package       Package  @relation(fields: [packageId], references: [id])
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  sessionNumber Int
+  usedAt        DateTime?
+  used          Boolean  @default(false)
+  appointmentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Finance {
+  id            String   @id @default(cuid())
+  type          String
+  description   String
+  amount        Float
+  date          DateTime
+  category      String?
+  paymentMethod String?
+  patientId     String?
+  patient       Patient? @relation(fields: [patientId], references: [id])
+  appointmentId String?
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
