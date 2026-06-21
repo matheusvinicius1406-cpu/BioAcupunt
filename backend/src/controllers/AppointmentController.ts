@@ -4,11 +4,21 @@ import { patientService } from "../services/patientService";
 
 export const AppointmentController = {
   list: async (req: Request, res: Response) => {
-    const appointments = await appointmentService.getAll({});
+    const filters: any = {};
+    if (req.query.date) {
+      const date = new Date(req.query.date as string);
+      filters.date = {
+        gte: new Date(date.setHours(0, 0, 0, 0)),
+        lte: new Date(date.setHours(23, 59, 59, 999))
+      };
+    }
+    const appointments = await appointmentService.getAll(filters);
     res.json(appointments);
   },
   create: async (req: Request, res: Response) => {
-    const appointment = await appointmentService.create(req.body);
+    const data = { ...req.body };
+    if (data.date) data.date = new Date(data.date);
+    const appointment = await appointmentService.create(data);
     res.status(201).json(appointment);
   },
   show: async (req: Request, res: Response) => {
@@ -17,7 +27,9 @@ export const AppointmentController = {
     res.json(appointment);
   },
   update: async (req: Request, res: Response) => {
-    const appointment = await appointmentService.update(req.params.id, req.body);
+    const data = { ...req.body };
+    if (data.date) data.date = new Date(data.date);
+    const appointment = await appointmentService.update(req.params.id, data);
     res.json(appointment);
   },
   delete: async (req: Request, res: Response) => {

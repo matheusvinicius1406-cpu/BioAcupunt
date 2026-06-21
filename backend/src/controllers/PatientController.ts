@@ -8,7 +8,9 @@ export const PatientController = {
     res.json(patients);
   },
   create: async (req: Request, res: Response) => {
-    const patient = await patientService.create(req.body);
+    const data = { ...req.body };
+    if (data.birthDate) data.birthDate = new Date(data.birthDate);
+    const patient = await patientService.create(data);
     res.status(201).json(patient);
   },
   show: async (req: Request, res: Response) => {

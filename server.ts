@@ -7,6 +7,9 @@ import appointmentRoutes from "./backend/src/routes/appointments";
 import chatRoutes from "./backend/src/routes/chat";
 import packageRoutes from "./backend/src/routes/packages";
 import financeRoutes from "./backend/src/routes/finance";
+import synergyRoutes from "./backend/src/routes/synergy";
+import knowledgeRoutes from "./backend/src/routes/knowledge";
+import healthRoutes from "./backend/src/routes/health";
 
 async function startServer() {
   const app = express();
@@ -21,10 +24,9 @@ async function startServer() {
   app.use("/api/chat", chatRoutes);
   app.use("/api/packages", packageRoutes);
   app.use("/api/finance", financeRoutes);
-
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
+  app.use("/api/synergy", synergyRoutes);
+  app.use("/api/knowledge", knowledgeRoutes);
+  app.use("/api/health", healthRoutes);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
