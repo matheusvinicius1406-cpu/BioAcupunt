@@ -1,5 +1,9 @@
-import express from "express";
+import dotenv from "dotenv";
 import path from "path";
+// Configures dotenv with path resolving to the .env file in the current working directory
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
+import express from "express";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import patientRoutes from "./backend/src/routes/patients";
@@ -13,7 +17,7 @@ import healthRoutes from "./backend/src/routes/health";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(cors());
   app.use(express.json());
