@@ -60,15 +60,15 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside className={`
         fixed top-0 left-0 bottom-0 z-40
-        w-64 bg-white border-r border-emerald-50
+        w-64 bg-[#0D1117] border-r border-[#30363D]
         transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="h-full flex flex-col">
           <div className="p-6">
-            <h1 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-lg">B</span>
+            <h1 className="text-2xl font-bold text-[#E6EDF3] flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#00C896] rounded-lg flex items-center justify-center">
+                <span className="text-[#0D1117] text-lg font-black">B</span>
               </div>
               BioAcupunt
             </h1>
@@ -87,8 +87,8 @@ export function Sidebar() {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                     ${isActive 
-                      ? 'bg-emerald-600 text-white shadow-md' 
-                      : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'}
+                      ? 'bg-[#00C896] text-[#0D1117] shadow-lg shadow-[#00C896]/10 font-bold' 
+                      : 'text-[#8B949E] hover:bg-[#161B22] hover:text-[#E6EDF3]'}
                   `}
                 >
                   <Icon size={20} />
@@ -98,14 +98,14 @@ export function Sidebar() {
             })}
           </nav>
 
-          <div className="p-4 border-t border-emerald-50">
+          <div className="p-4 border-t border-[#30363D]">
             <div className="flex items-center gap-3 p-2">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
+              <div className="w-10 h-10 rounded-full bg-[#30363D] border border-[#00C896]/30 flex items-center justify-center text-[#00C896] font-bold">
                 DC
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">Dra. Camila</p>
-                <p className="text-xs text-gray-500">Acupunturista</p>
+                <p className="text-sm font-bold text-[#E6EDF3]">Dra. Camila</p>
+                <p className="text-xs text-[#8B949E]">Especialista MTC</p>
               </div>
             </div>
           </div>

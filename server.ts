@@ -6,14 +6,16 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
-import patientRoutes from "./backend/src/routes/patients";
-import appointmentRoutes from "./backend/src/routes/appointments";
-import chatRoutes from "./backend/src/routes/chat";
-import packageRoutes from "./backend/src/routes/packages";
-import financeRoutes from "./backend/src/routes/finance";
-import synergyRoutes from "./backend/src/routes/synergy";
-import knowledgeRoutes from "./backend/src/routes/knowledge";
+import patientRoutes from "./backend/src/domains/patients/routes/patientRoutes";
+import clinicalRoutes from "./backend/src/domains/clinical/routes/clinicalRoutes";
+import aiRoutes from "./backend/src/domains/ai/routes/aiRoutes";
+import appointmentRoutes from "./backend/src/domains/appointments/routes/appointmentRoutes";
+import packageRoutes from "./backend/src/domains/crm/routes/packageRoutes";
+import financeRoutes from "./backend/src/domains/finance/routes/financeRoutes";
+import protocolRoutes from "./backend/src/domains/protocols/routes/protocolRoutes";
+import knowledgeRoutes from "./backend/src/domains/knowledge/routes/knowledgeRoutes";
 import healthRoutes from "./backend/src/routes/health";
+import { requestTraceMiddleware } from "./backend/src/utils/logger";
 
 async function startServer() {
   const app = express();
@@ -21,14 +23,16 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+  app.use(requestTraceMiddleware);
 
   // API routes
   app.use("/api/patients", patientRoutes);
   app.use("/api/appointments", appointmentRoutes);
-  app.use("/api/chat", chatRoutes);
+  app.use("/api/ai", aiRoutes);
+  app.use("/api/clinical", clinicalRoutes);
   app.use("/api/packages", packageRoutes);
   app.use("/api/finance", financeRoutes);
-  app.use("/api/synergy", synergyRoutes);
+  app.use("/api/protocols", protocolRoutes);
   app.use("/api/knowledge", knowledgeRoutes);
   app.use("/api/health", healthRoutes);
 

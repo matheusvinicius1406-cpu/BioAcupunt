@@ -42,12 +42,29 @@ export default function AvaliacaoScreen() {
     if (!id) return;
 
     setSaving(true);
+    
+    // Transform flat evaluation form into Clinical OS Domain Payload
+    const structuredPayload = {
+      queixa: {
+        principal: form.queixaPrincipal,
+        evolucao: form.historico,
+      },
+      lingua: {
+        cor: form.lingua,
+      },
+      pulso: {
+        impressao: form.pulso,
+      },
+      mapaDor: [{ eva: form.eva }]
+    };
+
     try {
-      await api.updateAnamnese(id, form);
-      alert("Avaliação inicial salva!");
+      await api.updateAnamnese(id, structuredPayload);
+      alert("Avaliação inicial salva e vinculada ao prontuário!");
       navigate(`/agenda/novo?patientId=${id}`);
     } catch (error) {
-      alert("Erro ao salvar avaliação.");
+      console.error("Clinical Save Failed:", error);
+      alert("Erro ao salvar avaliação. Verifique a conexão.");
     } finally {
       setSaving(false);
     }

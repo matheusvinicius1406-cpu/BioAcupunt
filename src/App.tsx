@@ -28,6 +28,8 @@ import FinanceReportScreen from './screens/FinanceReportScreen';
 import PackageManagementScreen from './screens/PackageManagementScreen';
 import PackageSellScreen from './screens/PackageSellScreen';
 import TreatmentScreen from './screens/TreatmentScreen';
+import EvolutionScreen from './screens/EvolutionScreen';
+import AjustesScreen from './screens/AjustesScreen';
 
 export default function App() {
   return (
@@ -52,6 +54,9 @@ export default function App() {
           <Route path="/anamnese/:patientId" element={<AnamneseScreen />} />
           <Route path="/tratamento/:patientId" element={<TreatmentScreen />} />
           
+          {/* Evolução Clín. */}
+          <Route path="/evolucao" element={<EvolutionScreen />} />
+
           {/* Inteligência */}
           <Route path="/chat" element={<ChatScreen />} />
           
@@ -72,8 +77,8 @@ export default function App() {
           <Route path="/financeiro/pacotes" element={<PackageManagementScreen />} />
           <Route path="/financeiro/pacotes/vender" element={<PackageSellScreen />} />
           
-          {/* Ajustes (Placeholder) */}
-          <Route path="/ajustes" element={<div className="p-10"><h1>Configurações</h1><p>Em breve...</p></div>} />
+          {/* Ajustes */}
+          <Route path="/ajustes" element={<AjustesScreen />} />
         </Route>
       </Routes>
     </Router>

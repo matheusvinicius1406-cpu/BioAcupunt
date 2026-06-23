@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 // Local InMemory Data Store for fallbacks
-const memoryDB = {
+const memoryDB: any = {
   patients: [
     {
       id: "p1",
@@ -11,15 +11,9 @@ const memoryDB = {
       profession: "Arquiteta",
       phone: "(11) 98765-4321",
       email: "maria.souza@email.com",
-      anamnese: {
-        principalComplaint: "Dores de cabeça constantes e insônia severa há 3 meses devido ao estresse no trabalho.",
-        history: "Apresenta irritabilidade frequente, olhos secos, digestão lenta com distensão abdominal após as refeições.",
-        pulse: "Tenso (Xian) e rápido",
-        tongue: "Vermelha nas bordas, saburra amarela e fina",
-        diagnosisTCM: "Estagnação de Qi do Fígado com ascensão de Yang do Fígado.",
-        treatmentPlan: "Pacificar o Fígado, dispersar o Yang excedente e acalmar o Shen."
-      },
-      diagnosisHistory: [],
+      cpf: "123.456.789-00",
+      address: "Rua das Flores, 123",
+      status: "ACTIVE",
       balance: 150.0,
       createdAt: new Date("2026-05-10T12:00:00.000Z"),
       updatedAt: new Date("2026-06-18T14:30:00.000Z"),
@@ -32,15 +26,9 @@ const memoryDB = {
       profession: "Engenheiro Civil",
       phone: "(21) 99123-4567",
       email: "joao.alencar@email.com",
-      anamnese: {
-        principalComplaint: "Lombalgia crônica que irradia para o membro inferior esquerdo, piora ao frio.",
-        history: "Refere cansaço extremo, aversão ao frio, urina clara e frequente à noite.",
-        pulse: "Fraco (Ruoru) e profundo (Chen), principalmente na posição Chi.",
-        tongue: "Pálida, úmida e com marcas dentárias nas laterais",
-        diagnosisTCM: "Deficiência de Yang do Rim acompanhada de obstrução por frio-umidade (Síndrome Bi).",
-        treatmentPlan: "Aquecer o Yang do Rim, dispersar o frio-umidade e fortalecer a região lombar."
-      },
-      diagnosisHistory: [],
+      cpf: "234.567.890-11",
+      address: "Av. Atlântica, 456",
+      status: "ACTIVE",
       balance: 0.0,
       createdAt: new Date("2026-05-15T10:00:00.000Z"),
       updatedAt: new Date("2026-06-19T11:00:00.000Z"),
@@ -53,15 +41,9 @@ const memoryDB = {
       profession: "Designer",
       phone: "(11) 97765-1122",
       email: "ana.beatriz@email.com",
-      anamnese: {
-        principalComplaint: "Ansiedade generalizada, palpitações esporádicas e fadiga física intensa.",
-        history: "Sono agitado com muitos pesadelos, tonturas ocasionais e unhas fracas.",
-        pulse: "Fino (Xi) e fraco (Ruo)",
-        tongue: "Pálida com saburra fina e esbranquiçada",
-        diagnosisTCM: "Deficiência de Qi e Sangue do Coração.",
-        treatmentPlan: "Tonificar o Qi, nutrir o Sangue e tranquilizar o Shen."
-      },
-      diagnosisHistory: [],
+      cpf: "345.678.901-22",
+      address: "Rua Augusta, 789",
+      status: "ACTIVE",
       balance: 300.0,
       createdAt: new Date("2026-06-01T09:00:00.000Z"),
       updatedAt: new Date("2026-06-20T16:00:00.000Z"),
@@ -245,7 +227,17 @@ const memoryDB = {
   knowledgeCategories: [
     { id: "c1", name: "Pontos Principais", description: "Pontos essenciais de acupuntura e seus canais", icon: "Sparkles", order: 1, isActive: true, createdAt: new Date(), updatedAt: new Date() },
     { id: "c2", name: "Síndromes Clínicas", description: "Padrões de desequilíbrios MTC e tratamentos", icon: "ClipboardList", order: 2, isActive: true, createdAt: new Date(), updatedAt: new Date() }
-  ]
+  ],
+  
+  // New Clinical Models
+  anamnesis: [] as any[],
+  queixas: [] as any[],
+  bagangassessments: [] as any[],
+  zangfuassessments: [] as any[],
+  tongueexams: [] as any[],
+  pulseexams: [] as any[],
+  diagnosisrecords: [] as any[],
+  treatmentplans: [] as any[]
 };
 
 // Introspect helper to check if real database is connected/working
@@ -295,7 +287,21 @@ const serviceWrapper = (modelName: string) => {
 
         // --- Memory DB Fallback Engine ---
         console.log(`[InMemory DB Query] executing ${modelName}.${prop}`);
-        const list = (memoryDB as any)[modelName === 'packageSession' ? 'packageSessions' : modelName === 'knowledgeCategory' ? 'knowledgeCategories' : modelName === 'patients' ? 'patients' : modelName + 's'];
+        let dbKey = modelName.toLowerCase();
+        if (dbKey.endsWith('s')) {
+          // already plural maybe or needs special handling
+        } else {
+          dbKey = dbKey + "s";
+        }
+
+        // Special mappings for specific model names
+        if (modelName === "Anamnesis") dbKey = "anamnesis";
+        if (modelName === "Queixa") dbKey = "queixas";
+        if (modelName === "packageSession") dbKey = "packageSessions";
+        if (modelName === "knowledgeCategory") dbKey = "knowledgeCategories";
+        if (modelName === "patient") dbKey = "patients";
+
+        const list = (memoryDB as any)[dbKey];
         if (!list) {
           return null;
         }
@@ -323,8 +329,11 @@ const serviceWrapper = (modelName: string) => {
                 if (queryArg.include.patient && copy.patientId) {
                   copy.patient = memoryDB.patients.find(p => p.id === copy.patientId);
                 }
+                if (queryArg.include.clinicalRecords) {
+                  copy.clinicalRecords = memoryDB.anamnesis?.filter((r: any) => r.patientId === copy.id) || [];
+                }
                 if (queryArg.include.sessions && modelName === 'package') {
-                  copy.sessions = memoryDB.packageSessions.filter(s => s.packageId === copy.id);
+                  copy.sessions = memoryDB.packageSessions.filter((s: any) => s.packageId === copy.id);
                 }
                 return copy;
               });
@@ -332,7 +341,7 @@ const serviceWrapper = (modelName: string) => {
 
             // Apply basic sorting
             if (queryArg.orderBy) {
-              const orderBy = queryArg.orderBy;
+              const orderBy = Array.isArray(queryArg.orderBy) ? queryArg.orderBy[0] : queryArg.orderBy;
               const sortKey = Object.keys(orderBy)[0];
               const sortDir = orderBy[sortKey];
 
@@ -349,18 +358,19 @@ const serviceWrapper = (modelName: string) => {
           case 'findUnique': {
             const queryArg = args[0] || {};
             const id = queryArg.where?.id;
+            const anamnesisId = queryArg.where?.anamnesisId;
             const slug = queryArg.where?.slug;
             
-            let item = list.find(item => item.id === id || (slug && item.slug === slug));
+            let item = list.find((i: any) => i.id === id || i.anamnesisId === anamnesisId || (slug && i.slug === slug));
             if (!item) return null;
 
             item = { ...item };
             if (queryArg.include) {
               if (queryArg.include.patient && item.patientId) {
-                item.patient = memoryDB.patients.find(p => p.id === item.patientId);
+                item.patient = memoryDB.patients.find((p: any) => p.id === item.patientId);
               }
-              if (queryArg.include.sessions && modelName === 'package') {
-                item.sessions = memoryDB.packageSessions.filter(s => s.packageId === item.id);
+              if (queryArg.include.clinicalRecords) {
+                item.clinicalRecords = memoryDB.anamnesis?.filter((r: any) => r.patientId === item.id) || [];
               }
             }
             return item;
@@ -370,7 +380,7 @@ const serviceWrapper = (modelName: string) => {
             const queryArg = args[0] || {};
             const data = queryArg.data;
             const newItem = {
-              id: `${modelName.charAt(0)}m_${Math.random().toString(36).substr(2, 9)}`,
+              id: data.id || `${modelName.charAt(0)}m_${Math.random().toString(36).substr(2, 9)}`,
               ...data,
               createdAt: new Date(),
               updatedAt: new Date()
@@ -382,12 +392,12 @@ const serviceWrapper = (modelName: string) => {
           case 'update': {
             const queryArg = args[0] || {};
             const id = queryArg.where?.id;
+            const anamnesisId = queryArg.where?.anamnesisId;
             const data = queryArg.data;
             
-            const idx = list.findIndex(item => item.id === id);
-            if (idx === -1) throw new Error(`${modelName} not found with id: ${id}`);
+            const idx = list.findIndex((item: any) => item.id === id || item.anamnesisId === anamnesisId);
+            if (idx === -1) throw new Error(`${modelName} not found with id: ${id || anamnesisId}`);
             
-            // Shallow merge data
             const updatedItem = {
               ...list[idx],
               ...data,
@@ -395,6 +405,33 @@ const serviceWrapper = (modelName: string) => {
             };
             list[idx] = updatedItem;
             return updatedItem;
+          }
+
+          case 'upsert': {
+            const queryArg = args[0] || {};
+            const id = queryArg.where?.id;
+            const anamnesisId = queryArg.where?.anamnesisId;
+            
+            const idx = list.findIndex((item: any) => item.id === id || (anamnesisId && item.anamnesisId === anamnesisId));
+            
+            if (idx !== -1) {
+              const updatedItem = {
+                ...list[idx],
+                ...queryArg.update,
+                updatedAt: new Date()
+              };
+              list[idx] = updatedItem;
+              return updatedItem;
+            } else {
+              const newItem = {
+                id: (id && id !== 'new-id' && !id.includes('new')) ? id : `${modelName.charAt(0)}m_${Math.random().toString(36).substr(2, 9)}`,
+                ...queryArg.create,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+              list.push(newItem);
+              return newItem;
+            }
           }
 
           case 'delete': {
@@ -424,8 +461,23 @@ const serviceWrapper = (modelName: string) => {
 
 export const prisma = new Proxy({}, {
   get: (target, prop: string) => {
+    if (prop === '$transaction') {
+      return async (callback: any) => {
+        if (isPrismaUp) {
+          try {
+            return await realPrisma.$transaction(callback);
+          } catch (err: any) {
+            console.error("Prisma $transaction failed, falling back to sequential memory operations:", err.message);
+            isPrismaUp = false;
+          }
+        }
+        // Memory fallback: just execute callback with the proxy itself as the 'tx' object
+        return await callback(prisma);
+      };
+    }
+
     // Intercept database model access and wrap with recovery logic
-    if (typeof prop === 'string' && prop !== '$disconnect' && prop !== '$connect') {
+    if (typeof prop === 'string' && !prop.startsWith('$')) {
       return serviceWrapper(prop);
     }
     return (realPrisma as any)[prop];

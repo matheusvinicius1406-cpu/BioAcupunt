@@ -1,289 +1,165 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAnamneseStore } from "../store/anamneseStore";
+import { ClinicalHeader } from "../components/anamnese/ClinicalHeader";
+import { ChevronRight, ChevronLeft, Activity, FileText, Brain, CheckCircle2, Save, Loader2, Zap, History, Calendar } from "lucide-react";
+import { QueixaModule } from "../components/anamnese/QueixaModule";
+import { BaGangModule } from "../components/anamnese/BaGangModule";
+import { SemiologiaModule } from "../components/anamnese/SemiologiaModule";
+import { DiagnosticoModule } from "../components/anamnese/DiagnosticoModule";
+import { ZangFuModule } from "../components/anamnese/ZangFuModule";
 import { api } from "../services/api";
-import { MeridianSelector } from "../components/MeridianSelector";
-import { EVASlider } from "../components/EVASlider";
-import { SignaturePad } from "../components/SignaturePad";
-import { 
-  Save, 
-  Sparkles, 
-  Activity, 
-  FileText, 
-  Brain, 
-  MessageCircle,
-  Clock,
-  ArrowLeft,
-  ChevronRight,
-  ChevronLeft,
-  CheckCircle2
-} from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-
-const tabs = [
-  { id: 'identificacao', label: 'Queixa & EVA', icon: FileText },
-  { id: 'pulsologia', label: 'Pulsos & Língua', icon: Activity },
-  { id: 'meridianos', label: 'Meridianos', icon: Brain },
-  { id: 'fechamento', label: 'Assinatura', icon: CheckCircle2 }
-];
 
 export default function AnamneseScreen() {
-  const { patientId } = useParams();
-  const navigate = useNavigate();
-  const [patient, setPatient] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('identificacao');
-  const [anamnese, setAnamnese] = useState<any>({ 
-    queixaPrincipal: '',
-    observacoes: '',
-    eva: 0,
-    pulsologia: {
-      proximal: '', medial: '', distal: ''
-    },
-    lingua: {
-      saburra: '', cor: '', forma: ''
-    },
-    meridianos: {}
-  });
-  const [saving, setSaving] = useState(false);
-  const [diagnosing, setDiagnosing] = useState(false);
+    const { patientId } = useParams();
+    const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [patient, setPatient] = useState<any>(null);
 
-  useEffect(() => {
-    if (patientId) {
-      api.getPatient(patientId).then(setPatient);
-      api.getAnamnese(patientId).then(data => {
-        if (data) setAnamnese(prev => ({ ...prev, ...data }));
-      });
-    }
-  }, [patientId]);
+    const anamnese = useAnamneseStore(state => state.anamneseData);
+    const clinicalHistory = useAnamneseStore(state => state.clinicalHistory);
+    const updateField = useAnamneseStore(state => state.updateField);
+    const setCurrentDiagnosis = useAnamneseStore(state => state.setCurrentDiagnosis);
+    const setAnamnesis = useAnamneseStore(state => state.setAnamnesis);
+    const setHistory = useAnamneseStore(state => state.setHistory);
 
-  const handleSave = async () => {
-    if (!patientId) return;
-    setSaving(true);
-    try {
-      await api.updateAnamnese(patientId, anamnese);
-      // Sucesso
-    } catch (error) {
-      console.error("Erro ao salvar:", error);
-    } finally {
-      setSaving(false);
-    }
-  };
+    useEffect(() => {
+        const loadData = async () => {
+            if (!patientId) return;
+            try {
+                const patientData = await api.getPatient(patientId);
+                setPatient(patientData);
+                
+                if (patientData.clinicalRecords && patientData.clinicalRecords.length > 0) {
+                    setHistory(patientData.clinicalRecords);
+                    // Load the most recent record by default if no ID is set in store
+                    if (!anamnese.id) {
+                        setAnamnesis(patientData.clinicalRecords[0]);
+                        if (patientData.clinicalRecords[0].diagnostico) {
+                            setCurrentDiagnosis(patientData.clinicalRecords[0].diagnostico);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar prontuário:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, [patientId]);
 
-  const handleDiagnose = async () => {
-    if (!patientId) return;
-    setDiagnosing(true);
-    try {
-      await api.diagnose(patientId);
-      navigate(`/tratamento/${patientId}`);
-    } catch (error) {
-      console.error("Erro diagnóstico:", error);
-    } finally {
-      setDiagnosing(false);
-    }
-  };
+    const handleSave = async () => {
+        if (!patientId) return;
+        setSaving(true);
+        try {
+            const saved = await api.updateAnamnese(patientId, anamnese);
+            setAnamnesis({ ...anamnese, id: saved.id });
 
-  const nextTab = () => {
-    const idx = tabs.findIndex(t => t.id === activeTab);
-    if (idx < tabs.length - 1) setActiveTab(tabs[idx + 1].id);
-  };
+            // Generate AI diagnosis after save in the diagnosis tab
+            if (activeTab === 4) {
+                 const diag = await api.diagnose(saved.id);
+                 setCurrentDiagnosis(diag);
+            }
+        } catch (err) {
+            console.error("Erro ao salvar:", err);
+        } finally {
+            setSaving(false);
+        }
+    };
 
-  const prevTab = () => {
-    const idx = tabs.findIndex(t => t.id === activeTab);
-    if (idx > 0) setActiveTab(tabs[idx - 1].id);
-  };
+    const tabs = [
+        { label: 'Queixa & Dor', icon: FileText, component: <QueixaModule /> },
+        { label: 'Interrogatório (Ba Gang)', icon: Brain, component: <BaGangModule /> },
+        { label: 'Zang Fu & 5 Elementos', icon: Zap, component: <ZangFuModule /> },
+        { label: 'Semiologia (Língua/Pulso)', icon: Activity, component: <SemiologiaModule /> },
+        { label: 'Diagnóstico & Plano', icon: CheckCircle2, component: <DiagnosticoModule /> }
+    ];
 
-  return (
-    <div className="max-w-5xl mx-auto">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-emerald-50 rounded-full text-emerald-700">
-            <ArrowLeft size={24} />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Atendimento</h1>
-            <p className="text-emerald-700 font-medium">Prontuário de {patient?.name}</p>
-          </div>
+    if (loading) return (
+        <div className="min-h-screen bg-[#0D1117] flex items-center justify-center">
+            <Loader2 className="animate-spin text-[#00C896]" size={32} />
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={handleSave} 
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-bold hover:bg-emerald-50 transition-all shadow-sm"
-          >
-            {saving ? <Clock className="animate-spin" size={18} /> : <Save size={18} />}
-            Salvar
-          </button>
-          <button 
-            onClick={handleDiagnose}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-          >
-            {diagnosing ? <Clock className="animate-spin" size={18} /> : <Sparkles size={18} />}
-            Gerar Diagnóstico IA
-          </button>
-        </div>
-      </header>
+    );
 
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 min-h-[600px] flex flex-col md:flex-row">
-        {/* Sidebar Tabs */}
-        <aside className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-4 space-y-2">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all cursor-pointer ${
-                  isActive ? 'bg-white text-emerald-700 shadow-md font-bold' : 'text-gray-500 hover:bg-white/50'
-                }`}
-              >
-                <Icon size={20} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </aside>
+    return (
+        <div className="min-h-screen bg-[#0D1117] text-[#E6EDF3] font-sans">
+            <ClinicalHeader patient={patient || {name: 'Paciente não identificado'}} />
+            
+            <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                 {/* Navigation & History Sidebar */}
+                 <aside className="lg:col-span-3 space-y-6">
+                    <div className="bg-[#161B22] p-4 rounded-2xl border border-[#30363D] shadow-sm">
+                        <h3 className="text-[10px] font-bold text-[#8B949E] uppercase tracking-widest mb-3 px-2">Menu Clínico</h3>
+                        {tabs.map((tab, idx) => (
+                            <button key={tab.label} onClick={() => { handleSave(); setActiveTab(idx); }} 
+                                className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-sm ${activeTab === idx ? 'bg-[#30363D] text-[#00C896] border border-[#00C896]/20' : 'text-[#8B949E] hover:bg-[#0D1117]'}`}>
+                                <tab.icon size={16} /> {tab.label}
+                            </button>
+                        ))}
+                    </div>
 
-        {/* Content Area */}
-        <main className="flex-1 p-8 flex flex-col">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex-1"
-            >
-              {activeTab === 'identificacao' && (
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Queixa Principal</h3>
-                    <textarea 
-                      placeholder="Descreva o motivo da consulta..."
-                      className="w-full h-32 p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-gray-800"
-                      value={anamnese.queixaPrincipal}
-                      onChange={(e) => setAnamnese({...anamnese, queixaPrincipal: e.target.value})}
-                    />
-                  </div>
-                  <EVASlider value={anamnese.eva} onChange={(v) => setAnamnese({...anamnese, eva: v})} />
-                </div>
-              )}
-
-              {activeTab === 'pulsologia' && (
-                <div className="space-y-8">
-                  <section>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <Activity size={20} className="text-emerald-600" /> Pulsologia (Cun, Guan, Chi)
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {['proximal', 'medial', 'distal'].map(pos => (
-                        <div key={pos}>
-                          <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">{pos}</label>
-                          <input 
-                            placeholder="Descreva o pulso..."
-                            className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500"
-                            value={anamnese.pulsologia[pos]}
-                            onChange={(e) => setAnamnese({
-                              ...anamnese, 
-                              pulsologia: { ...anamnese.pulsologia, [pos]: e.target.value }
-                            })}
-                          />
+                    <div className="bg-[#161B22] p-5 rounded-2xl border border-[#30363D]">
+                        <h3 className="text-[10px] font-bold text-[#8B949E] uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <History size={12} className="text-[#00C896]"/> Timeline Clínica
+                        </h3>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                            {clinicalHistory.map((rec) => (
+                                <button 
+                                    key={rec.id}
+                                    onClick={() => setAnamnesis(rec)}
+                                    className={`w-full p-3 rounded-lg border text-left transition-all ${anamnese.id === rec.id ? 'bg-[#00C896]/10 border-[#00C896]/50' : 'bg-[#0D1117] border-[#30363D] hover:border-[#8B949E]'}`}
+                                >
+                                    <div className="flex items-center gap-2 text-xs font-bold text-[#E6EDF3]">
+                                        <Calendar size={12} className="text-[#00C896]" />
+                                        {new Date(rec.date).toLocaleDateString()}
+                                    </div>
+                                    <p className="text-[10px] text-[#8B949E] mt-1 line-clamp-1">{rec.queixa?.principal || "Consulta"}</p>
+                                </button>
+                            ))}
                         </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Inspeção da Língua</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Cor do Corpo</label>
-                        <select 
-                          className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500"
-                          value={anamnese.lingua.cor}
-                          onChange={(e) => setAnamnese({
-                            ...anamnese, 
-                            lingua: { ...anamnese.lingua, cor: e.target.value }
-                          })}
+                        <button 
+                            onClick={() => {
+                                setAnamnesis({ ...anamnese, id: '', date: new Date().toISOString() });
+                                setActiveTab(0);
+                            }}
+                            className="w-full mt-4 py-2 border border-dashed border-[#30363D] rounded-lg text-[10px] font-bold text-[#8B949E] hover:border-[#00C896] hover:text-[#00C896] transition-all"
                         >
-                          <option value="">Selecione...</option>
-                          <option value="pálida">Pálida</option>
-                          <option value="rósea">Rósea (Normal)</option>
-                          <option value="vermelha">Vermelha</option>
-                          <option value="púrpura">Púrpura</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Saburra</label>
-                        <input 
-                          className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500"
-                          placeholder="Ex: Branca, Amarela, Escassa..."
-                          value={anamnese.lingua.saburra}
-                          onChange={(e) => setAnamnese({
-                            ...anamnese, 
-                            lingua: { ...anamnese.lingua, saburra: e.target.value }
-                          })}
-                        />
-                      </div>
+                            + Novo Atendimento
+                        </button>
                     </div>
-                  </section>
-                </div>
-              )}
+                 </aside>
 
-              {activeTab === 'meridianos' && (
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <Brain size={20} className="text-emerald-600" /> Balanço Energético
-                  </h3>
-                  <MeridianSelector 
-                    values={anamnese.meridianos} 
-                    onChange={(mId: string, val: any) => setAnamnese({
-                      ...anamnese,
-                      meridianos: { ...anamnese.meridianos, [mId]: val }
-                    })} 
-                  />
-                </div>
-              )}
+                 {/* Content Modules */}
+                 <section className="lg:col-span-9 bg-[#161B22] p-10 rounded-2xl border border-[#30363D] min-h-[700px] shadow-2xl relative">
+                    <div className="flex justify-between items-center mb-8">
+                        <h2 className="text-2xl font-display text-[#E6EDF3] font-bold">
+                            {tabs[activeTab].label}
+                        </h2>
+                        {saving && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-[#00C896]/10 border border-[#00C896]/30 rounded-full">
+                                <Loader2 size={12} className="animate-spin text-[#00C896]" />
+                                <span className="text-[10px] text-[#00C896] font-bold uppercase tracking-widest">Calculando...</span>
+                            </div>
+                        )}
+                    </div>
 
-              {activeTab === 'fechamento' && (
-                <div className="space-y-10">
-                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Observações Finais</h3>
-                    <textarea 
-                      placeholder="Conclusões ou orientações dietéticas..."
-                      className="w-full h-32 p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500"
-                      value={anamnese.observacoes}
-                      onChange={(e) => setAnamnese({...anamnese, observacoes: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Assinatura do Paciente</h3>
-                    <p className="text-sm text-gray-500 mb-4">Ao assinar, o paciente confirma a veracidade das informações e autoriza o tratamento.</p>
-                    <SignaturePad onSave={(data) => setAnamnese({...anamnese, assinatura: data})} />
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                    {tabs[activeTab].component}
+                 </section>
 
-          <footer className="mt-auto pt-8 border-t border-gray-100 flex justify-between">
-            <button 
-              disabled={activeTab === tabs[0].id}
-              onClick={prevTab}
-              className="flex items-center gap-2 px-4 py-2 text-gray-400 hover:text-emerald-600 disabled:opacity-0 transition-all font-bold"
-            >
-              <ChevronLeft size={20} /> Anterior
-            </button>
-            <button 
-              onClick={activeTab === tabs[tabs.length - 1].id ? handleSave : nextTab}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-bold hover:bg-emerald-100 transition-all"
-            >
-              {activeTab === tabs[tabs.length - 1].id ? 'Finalizar & Salvar' : 'Próximo'} 
-              {activeTab !== tabs[tabs.length - 1].id && <ChevronRight size={20} />}
-            </button>
-          </footer>
-        </main>
-      </div>
-    </div>
-  );
+                 <footer className="col-span-full flex justify-between items-center pt-8 border-t border-[#30363D]">
+                    <button onClick={() => setActiveTab(t => Math.max(0, t-1))} className="text-[#8B949E] flex items-center gap-2 hover:text-white transition-all"><ChevronLeft size={16}/> Anterior</button>
+                    <div className="flex gap-4">
+                        <button onClick={handleSave} className="px-6 py-3 border border-[#30363D] rounded-xl text-[#8B949E] font-bold hover:bg-[#30363D] transition-all">Salvar Rascunho</button>
+                        <button onClick={async () => { await handleSave(); if (activeTab < 3) setActiveTab(t => t + 1); else navigate('/dashboard'); }} 
+                            className="bg-[#00C896] px-8 py-3 rounded-xl text-[#0D1117] font-bold flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                            {activeTab === 3 ? 'Finalizar Atendimento' : 'Próximo Passo'} <ChevronRight size={16}/>
+                        </button>
+                    </div>
+                 </footer>
+            </main>
+        </div>
+    );
 }
-
